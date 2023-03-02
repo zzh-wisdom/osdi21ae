@@ -48,7 +48,8 @@
 #ifdef SWITCH_TEST
 #define READ_WRITE_NUM (128 * 1000ull * 1000)
 #else
-#define READ_WRITE_NUM (64 * 1000ull * 1000)
+// #define READ_WRITE_NUM (64 * 1000ull * 1000)
+#define READ_WRITE_NUM (10)
 
 #endif
 

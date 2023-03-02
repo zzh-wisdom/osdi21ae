@@ -7,4 +7,4 @@ fi
 cp script/* build
 cd build
 
-cmake .. && make -j
+cmake .. && make -j10

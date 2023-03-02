@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        "*.fio": "yaml",
         "*.p4": "c",
         "array": "cpp",
         "string_view": "cpp",
@@ -70,6 +71,22 @@
         "regex": "cpp",
         "iomanip": "cpp",
         "scoped_allocator": "cpp",
-        "valarray": "cpp"
+        "valarray": "cpp",
+        "bit": "cpp",
+        "compare": "cpp",
+        "concepts": "cpp",
+        "stop_token": "cpp",
+        "any": "cpp",
+        "barrier": "cpp",
+        "charconv": "cpp",
+        "coroutine": "cpp",
+        "latch": "cpp",
+        "numbers": "cpp",
+        "ranges": "cpp",
+        "semaphore": "cpp",
+        "source_location": "cpp",
+        "span": "cpp",
+        "syncstream": "cpp",
+        "variant": "cpp"
     }
 }

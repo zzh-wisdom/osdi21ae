@@ -48,7 +48,7 @@ class Topology {
   static std::atomic<int> counter;
 
 public:
-  constexpr static int kNumaCnt = 4;
+  constexpr static int kNumaCnt = 1;
   constexpr static int kCorePerNuma = 18;
   static int threadID() {
 
@@ -57,7 +57,7 @@ public:
   }
 
   static void reset() {
-    counter.store(1);
+    counter.store(40);
     // id 0 is shift thread
   }
 

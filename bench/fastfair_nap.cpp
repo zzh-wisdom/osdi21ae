@@ -52,22 +52,32 @@ struct alignas(64) sub_thread {
 int main(int argc, char *argv[]) {
 
   // parse inputs
-  if (argc != 5) {
+  // if (argc != 5) {
+  //   printf("usage: %s <pool_path> <load_file> <run_file> <thread_num>\n\n",
+  //          argv[0]);
+  //   printf("    pool_path: the pool file required for PMDK\n");
+  //   printf("    load_file: a workload file for the load phase\n");
+  //   printf("    run_file: a workload file for the run phase\n");
+  //   printf("    thread_num: the number of threads\n");
+  //   exit(1);
+  // }
+
+  // const char *path = argv[1];
+  // (void)path;
+
+  // parse inputs
+  if (argc != 4) {
     printf("usage: %s <pool_path> <load_file> <run_file> <thread_num>\n\n",
            argv[0]);
-    printf("    pool_path: the pool file required for PMDK\n");
     printf("    load_file: a workload file for the load phase\n");
     printf("    run_file: a workload file for the run phase\n");
     printf("    thread_num: the number of threads\n");
     exit(1);
   }
-
-  const char *path = argv[1];
-  (void)path;
   size_t thread_num;
 
   std::stringstream s;
-  s << argv[4];
+  s << argv[3];
   s >> thread_num;
 
   assert(thread_num > 0);
@@ -87,8 +97,8 @@ int main(int argc, char *argv[]) {
   key[KEY_LEN - 1] = '\0';
   size_t loaded = 0, inserted = 0, found = 0, unfound = 0;
 
-  if ((ycsb = fopen(argv[2], "r")) == nullptr) {
-    printf("failed to read %s\n", argv[2]);
+  if ((ycsb = fopen(argv[1], "r")) == nullptr) {
+    printf("failed to read %s\n", argv[1]);
     exit(1);
   }
 
@@ -110,8 +120,8 @@ int main(int argc, char *argv[]) {
   fclose(ycsb);
   printf("Load phase finishes: %ld items are inserted \n", loaded);
 
-  if ((ycsb_read = fopen(argv[3], "r")) == nullptr) {
-    printf("fail to read %s\n", argv[3]);
+  if ((ycsb_read = fopen(argv[2], "r")) == nullptr) {
+    printf("fail to read %s\n", argv[2]);
     exit(1);
   }
 
@@ -126,6 +136,8 @@ int main(int argc, char *argv[]) {
   }
 
   size_t operation_num = 0;
+  size_t put_num = 0;
+  size_t read_num = 0;
   while (getline(&pbuf, &len, ycsb_read) != -1) {
     auto cur = operation_num % thread_num;
     if ((size_t)move[cur] >= READ_WRITE_NUM / thread_num + 1) {
@@ -143,6 +155,7 @@ int main(int argc, char *argv[]) {
       // assert(strlen((char *)e.key) == 14);
       e.operation = cceh_op::INSERT;
       move[cur]++;
+      put_num++;
     } else if (strncmp(buf, "READ", 4) == 0) {
       memcpy(e.key, buf + 5, KEY_LEN - 1);
       e.key[KEY_LEN - 1] = '\0';
@@ -151,17 +164,19 @@ int main(int argc, char *argv[]) {
       // assert(strlen((char *)e.key) == 14);
       e.operation = cceh_op::READ;
       move[cur]++;
+      read_num++;
     } else {
       assert(false);
     }
     operation_num++;
   }
   fclose(ycsb_read);
+  printf("put_num=%lu, read_num=%lu", put_num, read_num);
 
   sub_thread *THREADS = (sub_thread *)malloc(sizeof(sub_thread) * thread_num);
   inserted = 0;
 
-  printf("Run phase begins: %s \n", argv[3]);
+  printf("Run phase begins: %s \n", argv[2]);
   for (size_t t = 0; t < thread_num; t++) {
     THREADS[t].id = t;
     THREADS[t].inserted = 0;
@@ -180,36 +195,38 @@ int main(int argc, char *argv[]) {
   threads.reserve(thread_num);
 
 #ifdef ENABLE_NAP
+  abort();
   FastFairTreeIndex raw_index(tree);
   nap::Nap<FastFairTreeIndex> fastfair_nap(&raw_index);
 #endif
 
   // warm up
-  {
-    const std::string warm_up(WARMUP_FILE);
-    if ((ycsb = fopen(warm_up.c_str(), "r")) == nullptr) {
-      printf("failed to read %s\n", warm_up.c_str());
-      exit(1);
-    }
-    printf("Warmup phase begins \n");
-    while (getline(&pbuf, &len, ycsb) != -1) {
-      if (strncmp(buf, "READ", 4) == 0) {
-        memcpy(key, buf + 5, KEY_LEN - 1);
+//   {
+//     const std::string warm_up(WARMUP_FILE);
+//     if ((ycsb = fopen(warm_up.c_str(), "r")) == nullptr) {
+//       printf("failed to read %s\n", warm_up.c_str());
+//       exit(1);
+//     }
+//     printf("Warmup phase begins \n");
+//     while (getline(&pbuf, &len, ycsb) != -1) {
+//       if (strncmp(buf, "READ", 4) == 0) {
+//         memcpy(key, buf + 5, KEY_LEN - 1);
 
-#ifdef ENABLE_NAP
-        std::string str;
-        fastfair_nap.get(nap::Slice((char *)key, KEY_LEN), str);
-#endif
-      }
-    }
-#ifdef ENABLE_NAP
-    nap::Topology::reset();
+// #ifdef ENABLE_NAP
+//         std::string str;
+//         fastfair_nap.get(nap::Slice((char *)key, KEY_LEN), str);
+// #endif
+//       }
+//     }
+// #ifdef ENABLE_NAP
+//     nap::Topology::reset();
 
-    fastfair_nap.set_sampling_interval(32);
-#endif
-    fclose(ycsb);
-  }
+//     fastfair_nap.set_sampling_interval(32);
+// #endif
+//     fclose(ycsb);
+//   }
 
+  nap::Topology::reset();
   constexpr int kTestThread = nap::kMaxThreadCnt;
   struct timespec start[kTestThread], end[kTestThread];
   bool is_test[kTestThread];
